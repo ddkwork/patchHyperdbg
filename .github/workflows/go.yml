@@ -23,7 +23,6 @@ jobs:
       # 2. 克隆上游仓库
       - name: Clone upstream
         run: |
-#          git clone --depth=1 $UPSTREAM_URL
           git clone --recursive https://github.com/HyperDbg/HyperDbg.git -b user-debugger-breakpoint
           cd HyperDbg
           git config --global user.email "action@github.com"
