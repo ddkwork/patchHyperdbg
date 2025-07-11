@@ -23,7 +23,7 @@ jobs:
       # 2. 克隆上游仓库
       - name: Clone upstream
         run: |
-          git clone --depth=1 $UPSTREAM_URL HyperDbg
+          git clone --depth=1 $UPSTREAM_URL
           cd HyperDbg
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
