@@ -1,4 +1,4 @@
-name: patch hyperdbg mcp
+name: patch HyperDbg mcp
 
 on:
   push:
@@ -17,14 +17,14 @@ jobs:
         run: |
           echo "GH_USER=ddkwork" >> $GITHUB_ENV
           echo "PATCH_FILE=mcp.patch" >> $GITHUB_ENV
-          echo "UPSTREAM_URL=https://github.com/hyperdbg/hyperdbg.git" >> $GITHUB_ENV
-          echo "FORK_URL=https://github.com/${{ env.GH_USER }}/hyperdbg.git" >> $GITHUB_ENV
+          echo "UPSTREAM_URL=https://github.com/HyperDbg/HyperDbg.git" >> $GITHUB_ENV
+          echo "FORK_URL=https://github.com/${{ env.GH_USER }}/HyperDbg.git" >> $GITHUB_ENV
 
       # 2. 克隆上游仓库
       - name: Clone upstream
         run: |
-          git clone --depth=1 $UPSTREAM_URL hyperdbg
-          cd hyperdbg
+          git clone --depth=1 $UPSTREAM_URL HyperDbg
+          cd HyperDbg
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
         shell: bash
@@ -74,7 +74,7 @@ jobs:
           
             # 使用令牌进行推送
             echo "强制推送到 $FORK_URL..."
-            git push --force "https://$GH_USER:$GH_TOKEN@github.com/$GH_USER/hyperdbg.git" user-debugger-breakpoint
+            git push --force "https://$GH_USER:$GH_TOKEN@github.com/$GH_USER/HyperDbg.git" user-debugger-breakpoint
           fi
           
           echo "更新完成!"
