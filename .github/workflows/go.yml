@@ -18,19 +18,15 @@ jobs:
           echo "GH_USER=ddkwork" >> $GITHUB_ENV
           echo "PATCH_FILE=mcp.patch" >> $GITHUB_ENV
           echo "UPSTREAM_URL=https://github.com/HyperDbg/HyperDbg.git" >> $GITHUB_ENV
-          echo "设置 GH_USER=ddkwork"
-          echo "设置 PATCH_FILE=mcp.patch"
 
       # 2. 克隆上游仓库
       - name: Clone upstream
         shell: bash
         run: |
-          echo "克隆 HyperDbg 仓库..."
           git clone --recursive "https://github.com/HyperDbg/HyperDbg.git" -b user-debugger-breakpoint
           cd HyperDbg
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
-          echo "克隆完成。当前目录: $(pwd)"
 
       # 3. 检出当前仓库
       - name: Checkout current repo
@@ -42,63 +38,48 @@ jobs:
       - name: Apply patch and push
         shell: bash
         run: |
-          echo "::group::应用补丁过程"
-          
-          # 硬编码所有变量值
+          # 硬编码值
           GH_USER="ddkwork"
           PATCH_FILE="mcp.patch"
           FORK_URL="https://github.com/ddkwork/HyperDbg.git"
           
           cd HyperDbg
-          PATCH_PATH="../current-repo/$PATCH_FILE"
-          
-          # 应用补丁
-          cp -v "$PATCH_PATH" "temp.patch"
+          cp "../current-repo/$PATCH_FILE" "temp.patch"
           git apply "temp.patch"
-          rm -v "temp.patch"
+          rm "temp.patch"
           
-          # 提交更改
           git add .
           if ! git diff --cached --quiet; then
-            git commit -m "自动补丁更新 $(date +'%Y-%m-%d %H:%M')"
+            git commit -m "自动更新 $(date +'%Y-%m-%d %H:%M')"
             git remote set-url origin "$FORK_URL"
             git push --force "https://ddkwork:$GH_TOKEN@github.com/ddkwork/HyperDbg.git" user-debugger-breakpoint
           fi
-          echo "::endgroup::"
         env:
           GH_TOKEN: ${{ secrets.tk }}
 
-      # 5. 设置 Go 环境（使用您的指定版本）
+      # 5. 设置 Go 环境
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.0-rc.1'
           check-latest: true
 
-      # 6. 运行 bindgen 测试（在指定目录）
-      - name: Run bindgen tests
+      # 6. 运行 bindgen 测试 (禁用CGO)
+      - name: Run bindgen tests (CGO disabled)
         shell: bash
         run: |
-          echo "::group::运行 bindgen 测试"
+          echo "::group::运行 bindgen 测试 (CGO禁用)"
           cd HyperDbg/hyperdbg/libhyperdbg/code/export
-          echo "当前测试目录: $(pwd)"
-          go test .
+          CGO_ENABLED=0 go test . -v
           echo "::endgroup::"
-          
-          # 返回到工作目录
           cd "$GITHUB_WORKSPACE"
 
-      # 7. 构建二进制文件（使用批处理脚本）
+      # 7. 构建二进制文件
       - name: Build binary with Fmsvc-build
         shell: cmd
         run: |
-          echo 正在构建二进制文件...
           cd HyperDbg\utils
           call Fmsvc-build.bat
-          echo 构建完成！
-          
-          # 显示构建结果
-          echo "构建产物:"
           dir /B output
         working-directory: ${{ github.workspace }}
 
@@ -109,13 +90,11 @@ jobs:
           name: hyperdbg-binaries
           path: HyperDbg\utils\output
           if-no-files-found: error
-          retention-days: 1
 
       # 9. 清理工作空间
       - name: Clean up
         if: always()
         run: |
-          echo "清理工作目录..."
           rm -rf HyperDbg
           rm -rf current-repo
         shell: bash
