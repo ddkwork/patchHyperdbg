@@ -17,22 +17,23 @@ jobs:
     runs-on: windows-latest
     steps:
       # 1. 克隆上游仓库
-      - name: Clone upstream
+      - name: Clone upstream repository
         shell: bash
         run: |
           git clone --recursive "https://github.com/HyperDbg/HyperDbg.git" -b user-debugger-breakpoint
           cd HyperDbg
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
+          echo "克隆完成，当前目录: $(pwd)"
 
-      # 2. 检出当前仓库
-      - name: Checkout current repo
+      # 2. 检出当前仓库（包含补丁文件）
+      - name: Checkout current repository
         uses: actions/checkout@v4
         with:
           path: current-repo
 
-      # 3. 应用补丁
-      - name: Apply patch and push
+      # 3. 应用补丁并推送
+      - name: Apply patch and push changes
         shell: bash
         run: |
           cd HyperDbg
@@ -42,56 +43,54 @@ jobs:
           
           git add .
           if ! git diff --cached --quiet; then
-            git commit -m "自动更新 $(date +'%Y-%m-%d %H:%M')"
+            git commit -m "自动补丁更新 $(date +'%Y-%m-%d %H:%M')"
             git remote set-url origin "https://github.com/ddkwork/HyperDbg.git"
             git push --force "https://ddkwork:$GH_TOKEN@github.com/ddkwork/HyperDbg.git" user-debugger-breakpoint
           fi
         env:
           GH_TOKEN: ${{ secrets.tk }}
 
-      # 4. 设置 Go 环境
-      - name: Setup Go
+      # 4. 设置Go环境
+      - name: Setup Go environment
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.0-rc.1'
           check-latest: true
 
-      # 5. 运行 bindgen 测试
+      # 5. 运行bindgen测试（禁用CGO）
       - name: Run bindgen tests
         shell: bash
         run: |
           cd HyperDbg/hyperdbg/libhyperdbg/code/export
           CGO_ENABLED=0 go test . -v
 
-      # 6. 设置 WDK 和 MSBuild - 关键修复
-      - name: Setup WDK and MSBuild
+      # 6. 安装WDK（Windows Driver Kit）
+      - name: Install Windows Driver Kit (WDK)
         run: |
-          # 下载并安装 WDK
           $wdkSetupPath = "$Env:TEMP\wdksetup.exe"
           (New-Object Net.WebClient).DownloadFile('https://go.microsoft.com/fwlink/?linkid=2196230', $wdkSetupPath)
           Start-Process -FilePath $wdkSetupPath -ArgumentList "/quiet" -NoNewWindow -Wait
-          
-          # 设置 MSBuild
-          echo "Adding MSBuild to PATH..."
-          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
-          $msbuildPath = Join-Path $vsPath "MSBuild\Current\Bin"
-          echo "::add-path::$msbuildPath"
         shell: powershell
 
-      # 7. 构建解决方案 - 使用 MSBuild
+      # 7. 设置MSBuild环境（关键修复）
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.1
+
+      # 8. 构建解决方案
       - name: Build solution with MSBuild
         run: |
           echo "::group::构建解决方案"
           echo "解决方案路径: $SOLUTION_FILE_PATH"
           
-          # 使用 MSBuild 构建解决方案
+          # 使用MSBuild构建解决方案
           msbuild /m /p:Configuration=Release /p:Platform=x64 "$SOLUTION_FILE_PATH"
           
-          echo "构建完成!"
+          echo "构建完成! 构建目录内容:"
+          dir /S /B "$BUILD_BIN_DIR" || echo "目录不存在"
           echo "::endgroup::"
         shell: cmd
 
-      # 8. 上传构建产物
+      # 9. 上传构建产物
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -100,8 +99,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 1
 
-      # 9. 清理工作空间
-      - name: Clean up
+      # 10. 清理工作空间
+      - name: Clean up workspace
         if: always()
         run: |
           rm -rf HyperDbg
