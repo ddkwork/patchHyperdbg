@@ -1893,7 +1893,7 @@ new file mode 100644
 +
 +                    // Start log redirection
 +                    std::string redirectCmd = "LogRedirect \"" + logFile + "\"";
-+                    HyperDbgInterpreter((CHAR*)redirectCmd.c_str());
++                    HyperDbgInterpreter(const_cast<CHAR*>(redirectCmd.c_str()));
 +
 +                    // Small delay to ensure redirection is active
 +                    Sleep(50);
@@ -1905,7 +1905,7 @@ new file mode 100644
 +                    Sleep(50);
 +
 +                    // Execute the actual command
-+                    bool success = HyperDbgInterpreter((CHAR*)cmd.c_str());
++                    bool success = HyperDbgInterpreter(const_cast<CHAR*>(cmd.c_str()));
 +
 +                    // Wait for command to complete and output to be written
 +                    Sleep(200);
@@ -2048,7 +2048,7 @@ new file mode 100644
 +                        continue;
 +                    }
 +
-+                    bool success = HyperDbgInterpreter((CHAR*)command.c_str());
++                    bool success = HyperDbgInterpreter(const_cast<CHAR*>(command.c_str()));
 +                    std::string response = success ? "true" : "false";
 +                    sendHttpResponse(clientSocket, 200, "text/plain", response);
 +                } else if (path == "/TestCommandParser") {
@@ -2073,7 +2073,7 @@ new file mode 100644
 +                        continue;
 +                    }
 +
-+                    HyperDbgTestCommandParserShowTokens((CHAR*)command.c_str());
++                    HyperDbgTestCommandParserShowTokens(const_cast<CHAR*>(command.c_str()));
 +                    sendHttpResponse(clientSocket, 200, "text/plain", "OK");
 +                } else if (path ==
 +                           "/SetTextMessageCallbackUsingSharedBuffer") {//todo remove this use execute command instead stdout and stderr
@@ -2105,7 +2105,7 @@ new file mode 100644
 +                } else if (path == "/CheckMultilineCommand") {
 +                    std::string current_command = queryParams["current_command"];
 +                    auto reset = std::stoi(queryParams["reset"]);
-+                    auto success = CheckMultilineCommand((CHAR*)current_command.c_str(), reset);
++                    auto success = CheckMultilineCommand(const_cast<CHAR*>(current_command.c_str()), reset);
 +                    std::string response = success ? "true" : "false";
 +                    sendHttpResponse(clientSocket, 200, "text/plain", response);
 +                } else if (path == "/ConnectRemoteDebugger") {
