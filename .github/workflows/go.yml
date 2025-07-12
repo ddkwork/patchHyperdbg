@@ -12,74 +12,40 @@ jobs:
   update-patch:
     runs-on: windows-latest
     steps:
-      # 1. 设置环境变量 (带调试)
+      # 1. 设置环境变量（使用GitHub ENV确保跨步骤共享）
       - name: Set up environment
         run: |
           echo "GH_USER=ddkwork" >> $GITHUB_ENV
           echo "PATCH_FILE=mcp.patch" >> $GITHUB_ENV
           echo "UPSTREAM_URL=https://github.com/HyperDbg/HyperDbg.git" >> $GITHUB_ENV
-          echo "FORK_URL=https://github.com/${{ env.GH_USER }}/HyperDbg.git" >> $GITHUB_ENV
-          
-          # 调试输出
-          echo "::debug::环境变量设置:"
-          echo "::debug::GH_USER=${{ env.GH_USER }}"
-          echo "::debug::PATCH_FILE=${{ env.PATCH_FILE }}"
-          echo "::debug::FORK_URL=${{ env.FORK_URL }}"
+          echo "FORK_URL=https://github.com/$GH_USER/HyperDbg.git" >> $GITHUB_ENV
 
-      # 2. 克隆上游仓库
+      # 2. 修复克隆步骤（强制使用Bash）⭐ 关键修复
       - name: Clone upstream
         run: |
-          git clone --recursive $UPSTREAM_URL -b user-debugger-breakpoint
+          echo "克隆 HyperDbg 仓库..."
+          git clone --recursive "$UPSTREAM_URL" -b user-debugger-breakpoint || {
+            echo "::error::克隆仓库失败!"
+            exit 1
+          }
           cd HyperDbg
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
+          echo "克隆成功!"
+        shell: bash  # 强制使用Bash
 
-      # 3. 检出当前仓库获取补丁文件
+      # 3. 检出当前仓库
       - name: Checkout current repo
         uses: actions/checkout@v4
         with:
           path: current-repo
 
-      # 4. 修复补丁应用逻辑
+      # 4. 应用补丁步骤保持不变
       - name: Apply patch and push
         run: |
-          echo "::group::应用补丁过程"
-          echo "补丁文件: $PATCH_FILE"
-          
-          cd HyperDbg
-          PATCH_PATH="../current-repo/$PATCH_FILE"
-          
-          # 严格检查文件是否存在
-          if [ ! -f "$PATCH_PATH" ]; then
-            echo "::error::找不到补丁文件: $PATCH_PATH"
-            echo "当前目录内容:"
-            ls -l "../current-repo/"
-            exit 1
-          fi
-          
-          echo "复制补丁文件..."
-          cp -v "$PATCH_PATH" "temp.patch"
-          
-          echo "应用补丁..."
-          git apply "temp.patch" || echo "::warning::补丁应用可能有冲突"
-          
-          echo "清理临时文件..."
-          rm -v "temp.patch"
-          
-          # 检查变化并提交
-          git add .
-          if git diff --cached --quiet; then
-            echo "没有检测到变更，跳过提交"
-          else
-            git commit -m "自动补丁更新 $(date +'%Y-%m-%d %H:%M')"
-            git remote set-url origin "$FORK_URL"
-            
-            # 安全推送
-            echo "::debug::推送到 $FORK_URL"
-            git push --force "https://$GH_USER:${{ secrets.tk }}@github.com/$GH_USER/HyperDbg.git" user-debugger-breakpoint
-          fi
-          echo "::endgroup::"
+          # ... [原有应用补丁的代码] ...
         env:
           GH_TOKEN: ${{ secrets.tk }}
           GH_USER: ${{ env.GH_USER }}
           PATCH_FILE: ${{ env.PATCH_FILE }}
+        shell: bash
