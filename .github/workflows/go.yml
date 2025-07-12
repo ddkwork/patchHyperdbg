@@ -12,15 +12,12 @@ jobs:
   update-patch:
     runs-on: windows-latest
     steps:
-      # 1. 环境变量设置 - 直接在作业级别定义（推荐）
+      # 1. 环境变量设置
       - name: Set static environment
         run: |
-          # 硬编码所有环境变量值
           echo "GH_USER=ddkwork" >> $GITHUB_ENV
           echo "PATCH_FILE=mcp.patch" >> $GITHUB_ENV
           echo "UPSTREAM_URL=https://github.com/HyperDbg/HyperDbg.git" >> $GITHUB_ENV
-          
-          # 调试输出
           echo "设置 GH_USER=ddkwork"
           echo "设置 PATCH_FILE=mcp.patch"
 
@@ -40,10 +37,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: current-repo
-        # 将补丁文件添加到工作流环境（可选）
-        id: repo-checkout
 
-      # 4. 应用补丁 - 硬编码所有值 ⭐ 关键修复
+      # 4. 应用补丁
       - name: Apply patch and push
         shell: bash
         run: |
@@ -54,53 +49,69 @@ jobs:
           PATCH_FILE="mcp.patch"
           FORK_URL="https://github.com/ddkwork/HyperDbg.git"
           
-          # 打印调试信息
-          echo "GH_USER: $GH_USER"
-          echo "PATCH_FILE: $PATCH_FILE"
-          echo "FORK_URL: $FORK_URL"
-          
           cd HyperDbg
           PATCH_PATH="../current-repo/$PATCH_FILE"
           
-          # 检查文件是否存在
-          if [ ! -f "$PATCH_PATH" ]; then
-            echo "::error::找不到补丁文件: $PATCH_PATH"
-            echo "当前目录内容:"
-            ls -l "../current-repo/"
-            exit 1
-          fi
-          
-          echo "复制补丁文件: $PATCH_PATH"
+          # 应用补丁
           cp -v "$PATCH_PATH" "temp.patch"
-          
-          echo "应用补丁..."
-          git apply "temp.patch" || {
-            echo "::warning::补丁应用可能有冲突"
-            git diff
-          }
-          
-          echo "清理临时文件..."
+          git apply "temp.patch"
           rm -v "temp.patch"
           
-          # 检查变化并提交
+          # 提交更改
           git add .
-          if git diff --cached --quiet; then
-            echo "没有检测到变更，跳过提交"
-          else
-            commit_msg="自动补丁更新 $(date +'%Y-%m-%d %H:%M')"
-            git commit -m "$commit_msg"
-            
-            # 设置远程并推送
+          if ! git diff --cached --quiet; then
+            git commit -m "自动补丁更新 $(date +'%Y-%m-%d %H:%M')"
             git remote set-url origin "$FORK_URL"
-            echo "推送到分支: user-debugger-breakpoint"
             git push --force "https://ddkwork:$GH_TOKEN@github.com/ddkwork/HyperDbg.git" user-debugger-breakpoint
           fi
           echo "::endgroup::"
         env:
-          # 只传递必需的安全令牌
           GH_TOKEN: ${{ secrets.tk }}
 
-      # 5. 清理步骤（可选）
+      # 5. 设置 Go 环境（使用您的指定版本）
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.0-rc.1'
+          check-latest: true
+
+      # 6. 运行 bindgen 测试（在指定目录）
+      - name: Run bindgen tests
+        shell: bash
+        run: |
+          echo "::group::运行 bindgen 测试"
+          cd HyperDbg/hyperdbg/libhyperdbg/code/export
+          echo "当前测试目录: $(pwd)"
+          go test .
+          echo "::endgroup::"
+          
+          # 返回到工作目录
+          cd "$GITHUB_WORKSPACE"
+
+      # 7. 构建二进制文件（使用批处理脚本）
+      - name: Build binary with Fmsvc-build
+        shell: cmd
+        run: |
+          echo 正在构建二进制文件...
+          cd HyperDbg\utils
+          call Fmsvc-build.bat
+          echo 构建完成！
+          
+          # 显示构建结果
+          echo "构建产物:"
+          dir /B output
+        working-directory: ${{ github.workspace }}
+
+      # 8. 上传构建产物
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hyperdbg-binaries
+          path: HyperDbg\utils\output
+          if-no-files-found: error
+          retention-days: 1
+
+      # 9. 清理工作空间
       - name: Clean up
         if: always()
         run: |
