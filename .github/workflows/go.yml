@@ -18,7 +18,7 @@ jobs:
           echo "GH_USER=ddkwork" >> $GITHUB_ENV
           echo "PATCH_FILE=mcp.patch" >> $GITHUB_ENV
           echo "UPSTREAM_URL=https://github.com/HyperDbg/HyperDbg.git" >> $GITHUB_ENV
-          echo "BUILD_DIR=HyperDbg\build" >> $GITHUB_ENV  # 添加构建目录变量
+          echo "BUILD_DIR=HyperDbg/build" >> $GITHUB_ENV  # 重要：使用正斜杠
 
       # 2. 克隆上游仓库
       - name: Clone upstream
@@ -85,6 +85,7 @@ jobs:
           
           # 显示构建结果
           echo "构建完成! 构建目录内容:"
+          echo "完整路径: %cd%\..\build"
           dir /S /B ..\build
           echo "::endgroup::"
         working-directory: ${{ github.workspace }}
@@ -94,7 +95,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hyperdbg-binaries
-          path: ${{ env.BUILD_DIR }}
+          path: HyperDbg/build  # 直接使用固定路径
           if-no-files-found: error
           retention-days: 1
 
@@ -102,16 +103,15 @@ jobs:
       - name: Verify artifacts
         if: always()
         run: |
-          echo "验证构建目录: $BUILD_DIR"
-          if [ ! -d "$BUILD_DIR" ]; then
+          echo "验证构建目录: HyperDbg/build"
+          if [ ! -d "HyperDbg/build" ]; then
             echo "::error::构建目录不存在!"
+            ls -l HyperDbg
           else
             echo "目录内容:"
-            ls -lR "$BUILD_DIR"
+            ls -lR HyperDbg/build
           fi
         shell: bash
-        env:
-          BUILD_DIR: ${{ env.BUILD_DIR }}
 
       # 10. 清理工作空间
       - name: Clean up
