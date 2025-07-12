@@ -8,6 +8,10 @@ on:
   schedule:
     - cron: '0 0 * * *'  # 每天自动更新
 
+env:
+  SOLUTION_FILE_PATH: ./hyperdbg/hyperdbg.sln
+  BUILD_BIN_DIR: ./hyperdbg/build/bin/
+
 jobs:
   update-patch:
     runs-on: windows-latest
@@ -59,22 +63,44 @@ jobs:
           cd HyperDbg/hyperdbg/libhyperdbg/code/export
           CGO_ENABLED=0 go test . -v
 
-      # 6. 构建二进制文件 - 直接调用批处理脚本
-      - name: Build binary
-        shell: cmd
+      # 6. 设置 WDK 和 MSBuild - 关键修复
+      - name: Setup WDK and MSBuild
         run: |
-          call HyperDbg\utils\msvc-build.bat
+          # 下载并安装 WDK
+          $wdkSetupPath = "$Env:TEMP\wdksetup.exe"
+          (New-Object Net.WebClient).DownloadFile('https://go.microsoft.com/fwlink/?linkid=2196230', $wdkSetupPath)
+          Start-Process -FilePath $wdkSetupPath -ArgumentList "/quiet" -NoNewWindow -Wait
+          
+          # 设置 MSBuild
+          echo "Adding MSBuild to PATH..."
+          $vsPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          $msbuildPath = Join-Path $vsPath "MSBuild\Current\Bin"
+          echo "::add-path::$msbuildPath"
+        shell: powershell
 
-      # 7. 上传构建产物
+      # 7. 构建解决方案 - 使用 MSBuild
+      - name: Build solution with MSBuild
+        run: |
+          echo "::group::构建解决方案"
+          echo "解决方案路径: $SOLUTION_FILE_PATH"
+          
+          # 使用 MSBuild 构建解决方案
+          msbuild /m /p:Configuration=Release /p:Platform=x64 "$SOLUTION_FILE_PATH"
+          
+          echo "构建完成!"
+          echo "::endgroup::"
+        shell: cmd
+
+      # 8. 上传构建产物
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: hyperdbg-binaries
-          path: HyperDbg/build
+          path: ${{ env.BUILD_BIN_DIR }}
           if-no-files-found: warn
           retention-days: 1
 
-      # 8. 清理工作空间
+      # 9. 清理工作空间
       - name: Clean up
         if: always()
         run: |
