@@ -75,7 +75,7 @@ jobs:
           cd "$GITHUB_WORKSPACE"
 
       # 7. 构建二进制文件
-      - name: Build binary with Fmsvc-build
+      - name: Build binary with msvc-build
         shell: cmd
         run: |
           cd HyperDbg\utils
