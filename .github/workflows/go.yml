@@ -8,10 +8,6 @@ on:
   schedule:
     - cron: '0 0 * * *'  # 每天自动更新
 
-env:
-  SOLUTION_FILE_PATH: hyperdbg\hyperdbg.sln
-  BUILD_BIN_DIR: hyperdbg\build\bin
-
 jobs:
   update-patch:
     runs-on: windows-latest
@@ -20,7 +16,7 @@ jobs:
       - name: Clone upstream repository
         shell: bash
         run: |
-          git clone --recursive "https://github.com/HyperDbg/HyperDbg.git" -b user-debugger-breakpoint
+          git clone --recursive "https://github.com/HyperDbg/HyperDbg.git" -b user-debugger-breakpoint HyperDbg
           cd HyperDbg
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
@@ -76,26 +72,31 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.1
 
-      # 8. 构建解决方案 - 修复变量语法 ⭐
+      # 8. 构建解决方案 - 修复工作目录问题 ⭐
       - name: Build solution with MSBuild
         run: |
           echo "::group::构建解决方案"
-          echo "解决方案路径: %SOLUTION_FILE_PATH%"
+          echo "当前工作目录: %cd%"
           
-          rem 使用MSBuild构建解决方案
-          msbuild /m /p:Configuration=Release /p:Platform=x64 "%SOLUTION_FILE_PATH%"
+          rem 直接构建解决方案文件
+          msbuild /m /p:Configuration=Release /p:Platform=x64 "hyperdbg/hyperdbg.sln"
           
           echo "构建完成! 构建目录内容:"
-          dir /S /B "%BUILD_BIN_DIR%" || echo "目录不存在"
+          if exist "hyperdbg\build\bin" (
+            dir /S /B "hyperdbg\build\bin"
+          ) else (
+            echo "构建目录不存在"
+          )
           echo "::endgroup::"
         shell: cmd
+        working-directory: HyperDbg  # 关键修复：设置工作目录
 
       # 9. 上传构建产物
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
           name: hyperdbg-binaries
-          path: ${{ env.BUILD_BIN_DIR }}
+          path: HyperDbg/hyperdbg/build/bin
           if-no-files-found: warn
           retention-days: 1
 
