@@ -9,8 +9,8 @@ on:
     - cron: '0 0 * * *'  # 每天自动更新
 
 env:
-  SOLUTION_FILE_PATH: ./hyperdbg/hyperdbg.sln
-  BUILD_BIN_DIR: ./hyperdbg/build/bin/
+  SOLUTION_FILE_PATH: hyperdbg\hyperdbg.sln
+  BUILD_BIN_DIR: hyperdbg\build\bin
 
 jobs:
   update-patch:
@@ -72,21 +72,21 @@ jobs:
           Start-Process -FilePath $wdkSetupPath -ArgumentList "/quiet" -NoNewWindow -Wait
         shell: powershell
 
-      # 7. 设置MSBuild环境（关键修复）
+      # 7. 设置MSBuild环境
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v1.1
 
-      # 8. 构建解决方案
+      # 8. 构建解决方案 - 修复变量语法 ⭐
       - name: Build solution with MSBuild
         run: |
           echo "::group::构建解决方案"
-          echo "解决方案路径: $SOLUTION_FILE_PATH"
+          echo "解决方案路径: %SOLUTION_FILE_PATH%"
           
-          # 使用MSBuild构建解决方案
-          msbuild /m /p:Configuration=Release /p:Platform=x64 "$SOLUTION_FILE_PATH"
+          rem 使用MSBuild构建解决方案
+          msbuild /m /p:Configuration=Release /p:Platform=x64 "%SOLUTION_FILE_PATH%"
           
           echo "构建完成! 构建目录内容:"
-          dir /S /B "$BUILD_BIN_DIR" || echo "目录不存在"
+          dir /S /B "%BUILD_BIN_DIR%" || echo "目录不存在"
           echo "::endgroup::"
         shell: cmd
 
