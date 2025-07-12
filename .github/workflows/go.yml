@@ -51,7 +51,7 @@ jobs:
           # 从当前仓库复制补丁文件到临时位置
           PATCH_PATH="../current-repo/$PATCH_FILE"
           TEMP_PATCH="temp.patch"
-          cp "$PATCH_PATH" "$TEMP_PATCH"
+          copy "$PATCH_PATH" "$TEMP_PATCH"
           
           # 应用补丁
           git apply "$TEMP_PATCH"
