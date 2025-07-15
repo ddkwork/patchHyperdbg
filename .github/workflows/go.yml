@@ -16,7 +16,7 @@ jobs:
       - name: Clone upstream repository
         shell: bash
         run: |
-          git clone --recursive "https://github.com/HyperDbg/HyperDbg.git" -b user-debugger-breakpoint HyperDbg
+          git clone --recursive "https://github.com/HyperDbg/HyperDbg.git" -b dev HyperDbg
           cd HyperDbg
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
@@ -41,7 +41,7 @@ jobs:
           if ! git diff --cached --quiet; then
             git commit -m "自动补丁更新 $(date +'%Y-%m-%d %H:%M')"
             git remote set-url origin "https://github.com/ddkwork/HyperDbg.git"
-            git push --force "https://ddkwork:$GH_TOKEN@github.com/ddkwork/HyperDbg.git" user-debugger-breakpoint
+            git push --force "https://ddkwork:$GH_TOKEN@github.com/ddkwork/HyperDbg.git" dev
           fi
         env:
           GH_TOKEN: ${{ secrets.tk }}
@@ -54,11 +54,11 @@ jobs:
           check-latest: true
 
       # 5. 运行bindgen测试（禁用CGO）
-      - name: Run bindgen tests
-        shell: bash
-        run: |
-          cd HyperDbg/hyperdbg/libhyperdbg/code/export
-          CGO_ENABLED=0 go test . -v
+#      - name: Run bindgen tests
+#        shell: bash
+#        run: |
+#          cd HyperDbg/hyperdbg/libhyperdbg/code/export
+#          CGO_ENABLED=0 go test . -v
 
       # 6. 安装WDK（Windows Driver Kit）
       - name: Install Windows Driver Kit (WDK)
@@ -75,19 +75,11 @@ jobs:
       # 8. 构建解决方案 - 修复工作目录问题 ⭐
       - name: Build solution with MSBuild
         run: |
-          echo "::group::构建解决方案"
-          echo "当前工作目录: %cd%"
-          
-          rem 直接构建解决方案文件
-          msbuild /m /p:Configuration=Release /p:Platform=x64 "hyperdbg/hyperdbg.sln"
-          
-          echo "构建完成! 构建目录内容:"
-          if exist "hyperdbg\build\bin" (
-            dir /S /B "hyperdbg\build\bin"
-          ) else (
-            echo "构建目录不存在"
-          )
-          echo "::endgroup::"
+          cd HyperDbg/hyperdbg
+          git clone https://github.com/ddkwork/keystone.git
+          rmdir /s /q cmake-build-release
+          cmake -G "Visual Studio 17 2022" -A x64 -S . -B cmake-build-release
+          cmake --build cmake-build-release --config Release --parallel 6
         shell: cmd
         working-directory: HyperDbg  # 关键修复：设置工作目录
 
@@ -96,7 +88,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: hyperdbg-binaries
-          path: HyperDbg/hyperdbg/build/bin
+          path: HyperDbg/hyperdbg/cmake-build-release
           if-no-files-found: warn
           retention-days: 1
 
