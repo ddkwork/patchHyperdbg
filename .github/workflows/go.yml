@@ -73,7 +73,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.1
 
       # 8. 构建解决方案 - 修复工作目录问题 ⭐
-      - name: Build solution with MSBuild
+      - name: Build with cmake
         run: |
           cd HyperDbg/hyperdbg
           git clone https://github.com/ddkwork/keystone.git
@@ -81,7 +81,7 @@ jobs:
           cmake -G "Visual Studio 17 2022" -A x64 -S . -B cmake-build-release
           cmake --build cmake-build-release --config Release --parallel 6
         shell: cmd
-        working-directory: HyperDbg  # 关键修复：设置工作目录
+        working-directory: HyperDbg/hyperdbg  # 关键修复：设置工作目录
 
       # 9. 上传构建产物
       - name: Upload build artifacts
