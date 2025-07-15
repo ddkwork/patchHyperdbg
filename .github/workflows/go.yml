@@ -79,22 +79,10 @@ jobs:
           :: ========== 开始详细调试 ==========
           echo [DEBUG] 当前工作目录: %CD%
           
-          :: 检查目录结构
-          echo [DEBUG] 工作区目录结构:
-          dir /s /b
-          
           :: 克隆keystone库
           echo [DEBUG] 正在克隆keystone库...
           git clone https://github.com/ddkwork/keystone.git 2>&1
           echo [DEBUG] git clone退出代码: %ERRORLEVEL%
-          
-          :: 验证keystone目录内容
-          echo [DEBUG] keystone目录内容:
-          dir /s /b keystone 2>&1
-          if not exist "keystone\CMakeLists.txt" (
-            echo ::error::❌ keystone克隆失败或目录为空!
-            exit 1
-          )
           
           :: 检查dia2.h可能的路径
           echo [DEBUG] 正在搜索可能的dia2.h路径...
