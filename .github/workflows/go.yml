@@ -73,55 +73,13 @@ jobs:
         uses: microsoft/setup-msbuild@v1.1
 
       # 8. 构建解决方案 - 添加详细调试日志
-      - name: Build HyperDbg (with enhanced debugging)
+      - name: Build HyperDbg with cmake
         shell: cmd
         run: |
-          :: ========== 开始详细调试 ==========
-          echo [DEBUG] 当前工作目录: %CD%
-          
-          :: 克隆keystone库
-          echo [DEBUG] 正在克隆keystone库...
-          git clone https://github.com/ddkwork/keystone.git 2>&1
-          echo [DEBUG] git clone退出代码: %ERRORLEVEL%
-          
-          :: 检查dia2.h可能的路径
-          echo [DEBUG] 正在搜索可能的dia2.h路径...
-          where /r "C:\Program Files\Microsoft Visual Studio\" dia2.h 2>&1
-          where /r "C:\Program Files (x86)\Microsoft Visual Studio\" dia2.h 2>&1
-          
-          :: 设置DIA SDK路径变量
-          set "DIA_PATH=C:\Program Files\Microsoft Visual Studio\2022\Enterprise\DIA SDK"
-          
-          :: 验证指定的dia2.h是否存在
-          echo [DEBUG] 检查指定的dia2.h路径: %DIA_PATH%\include\dia2.h
-          if exist "%DIA_PATH%\include\dia2.h" (
-            echo ✅ 找到dia2.h文件: %DIA_PATH%\include\dia2.h
-          ) else (
-            echo ::error::❌ 指定的dia2.h路径不存在!
-            dir "%DIA_PATH%\include" 2>&1
-          )
-          
-          :: 准备构建目录
-          rmdir /s /q cmake-build-release 2>nul || echo [INFO] 原始构建目录不存在
-          
-          :: 运行CMake
-          echo [DEBUG] 执行CMake配置:
-          cmake -G "Visual Studio 17 2022" -A x64 -S . -B cmake-build-release -DDIA_SDK_INCLUDE_DIR="%DIA_PATH%\include" 2>&1
-          echo [DEBUG] CMake退出代码: %ERRORLEVEL%
-          
-          :: 如果配置失败，打印日志
-          if not exist "cmake-build-release\CMakeCache.txt" (
-            echo ::error::❌ CMake配置失败!
-            type cmake-build-release\CMakeFiles\CMakeError.log 2>&1
-            exit 1
-          )
-          
-          :: 构建项目
-          echo [DEBUG] 开始构建...
-          cmake --build cmake-build-release --config Release --parallel 6 2>&1
-          echo [DEBUG] 构建退出代码: %ERRORLEVEL%
-          
-          :: ========== 调试结束 ==========
+          git clone --progress https://github.com/ddkwork/keystone.git
+          rmdir /s /q cmake-build-release
+          cmake -G "Visual Studio 17 2022" -A x64 -S . -B cmake-build-release"
+          cmake --build cmake-build-release --config Release --parallel 6
         working-directory: HyperDbg/hyperdbg
 
       # 9. 上传构建产物
@@ -132,8 +90,6 @@ jobs:
           path: HyperDbg/hyperdbg/cmake-build-release
           if-no-files-found: warn
           retention-days: 1
-        # 保留原有的注释版本
-        #        if: success()  # 仅在构建成功时上传
 
       # 10. 清理工作空间
       - name: Clean up workspace
@@ -143,10 +99,4 @@ jobs:
           rm -rf current-repo
         shell: bash
 
-      # 11. 保留的mcp注释部分用于后续启用
-      #      - name: Build mcp components
-      #        shell: bash
-      #        run: |
-      #          echo "准备编译mcp组件..."
-      #          cd HyperDbg/mcp
-      #          make
+
