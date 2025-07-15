@@ -16,7 +16,7 @@ jobs:
       - name: Clone upstream repository
         shell: bash
         run: |
-          git clone --recursive "https://github.com/HyperDbg/HyperDbg.git" -b dev HyperDbg
+          git clone --recursive "https://github.com/HyperDbg/HyperDbg.git" -b dev
           cd HyperDbg
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
@@ -54,11 +54,11 @@ jobs:
           check-latest: true
 
       # 5. 运行bindgen测试（禁用CGO）
-#      - name: Run bindgen tests
-#        shell: bash
-#        run: |
-#          cd HyperDbg/hyperdbg/libhyperdbg/code/export
-#          CGO_ENABLED=0 go test . -v
+      #      - name: Run bindgen tests
+      #        shell: bash
+      #        run: |
+      #          cd HyperDbg/hyperdbg/libhyperdbg/code/export
+      #          CGO_ENABLED=0 go test . -v
 
       # 6. 安装WDK（Windows Driver Kit）
       - name: Install Windows Driver Kit (WDK)
